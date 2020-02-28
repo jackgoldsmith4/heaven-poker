@@ -1,0 +1,209 @@
+(ns heaven-poker.hand)
+
+; Poker hands are ranked from 1-9
+;   1: high card
+;   2: one pair
+;   3: two pair
+;   4: three of a kind
+;   5: straight
+;   6: flush
+;   7: full house
+;   8: four of a kind
+;   9: straight flush
+
+(defn is-pair
+  "Takes in a sorted 7-card hand,
+  returns a map of its strength (2) and the made hand of five cards,
+  or nil if not one pair"
+  [seven-card-hand]
+  (let [card1 (nth seven-card-hand 0) ;TODO is nth or first/rest more expensive for accessing elements?
+        card2 (nth seven-card-hand 1)
+        card3 (nth seven-card-hand 2)
+        card4 (nth seven-card-hand 3)
+        card5 (nth seven-card-hand 4)
+        card6 (nth seven-card-hand 5)
+        card7 (nth seven-card-hand 6)]
+    (if (= (:rank card1) (:rank card2))
+      {:strength 2 :made-hand (list card1 card2 card3 card4 card5)}
+      (if (= (:rank card2) (:rank card3))
+        {:strength 2 :made-hand (list card2 card3 card1 card4 card5)}
+        (if (= (:rank card3) (:rank card4))
+          {:strength 2 :made-hand (list card3 card4 card1 card2 card5)}
+          (if (= (:rank card4) (:rank card5))
+            {:strength 2 :made-hand (list card4 card5 card1 card2 card3)}
+            (if (= (:rank card5) (:rank card6))
+              {:strength 2 :made-hand (list card5 card6 card1 card2 card3)}
+              (if (= (:rank card6) (:rank card7))
+                {:strength 2 :made-hand (list card6 card7 card1 card2 card3)}))))))))
+
+(defn is-two-pair
+  "Takes in a sorted 7-card hand,
+  returns a map of its strength (3) and the made hand of five cards,
+  or nil if not two pair"
+  [seven-card-hand]
+  (let [one-pair (is-pair seven-card-hand)]
+    (if one-pair
+      (let [hand-without-pair (concat (filter (fn [card] (not= (:rank card) (:rank (first (:made-hand one-pair))))) seven-card-hand) '({:rank 0, :suit -1} {:rank -1 :suit -1}))
+            second-pair (is-pair hand-without-pair)]
+        (if second-pair
+          {:strength 3 :made-hand (concat (take 2 (:made-hand one-pair)) (take 3 (:made-hand second-pair)))})))))
+
+(defn is-trips
+  "Takes in a sorted 7-card hand,
+  returns a map of its strength (4) and the made hand of five cards,
+  or nil if not three of a kind"
+  [seven-card-hand]
+  (let [card1 (nth seven-card-hand 0)
+        card2 (nth seven-card-hand 1) ;TODO is nth or first/rest more expensive for accessing elements?
+        card3 (nth seven-card-hand 2)
+        card4 (nth seven-card-hand 3)
+        card5 (nth seven-card-hand 4)
+        card6 (nth seven-card-hand 5)
+        card7 (nth seven-card-hand 6)]
+    (if (= (:rank card1) (:rank card2) (:rank card3))
+      {:strength 4 :made-hand (list card1 card2 card3 card4 card5)}
+      (if (= (:rank card2) (:rank card3) (:rank card4))
+        {:strength 4 :made-hand (list card2 card3 card4 card1 card5)}
+        (if (= (:rank card3) (:rank card4) (:rank card5))
+          {:strength 4 :made-hand (list card3 card4 card5 card1 card2)}
+          (if (= (:rank card4) (:rank card5) (:rank card6))
+            {:strength 4 :made-hand (list card4 card5 card6 card1 card2)}
+            (if (= (:rank card5) (:rank card6) (:rank card7))
+              {:strength 4 :made-hand (list card5 card6 card7 card1 card2)})))))))
+
+(defn check-straight-descending
+  "Helper function to (is-straight: takes in a sequence of five cards, returns them if they're descending"
+  [five-card-hand]
+  (let [initial-rank (:rank (first five-card-hand))
+        count (count (filter (fn [card] (= (+ (:rank card) (.indexOf five-card-hand card)) initial-rank)) (rest five-card-hand)))]
+    (if (= count 4) five-card-hand)))
+
+(defn is-wheel
+  "Helper function to (is-straight: checks for the \"wheel\" straight (ace through five)"
+  [seven-card-hand]
+  (if (= 14 (:rank (first seven-card-hand)))
+    (if (= 5 (:rank (nth seven-card-hand 3)))
+      (if (= 4 (:rank (nth seven-card-hand 4)))
+        (if (= 3 (:rank (nth seven-card-hand 5)))
+          (if (= 2 (:rank (nth seven-card-hand 6)))
+            {:strength 5 :made-hand (flatten (list (reverse (take 4 (reverse seven-card-hand))) (first seven-card-hand)))}))))))
+
+(defn is-straight
+  "Takes in a sorted 7-card hand,
+  returns a map of its strength (5) and the made hand of five cards,
+  or nil if not a straight"
+  [seven-card-hand]
+  (let [straight1 (take 5 seven-card-hand)
+        straight2 (take 5 (rest seven-card-hand))
+        straight3 (take 5 (rest (rest seven-card-hand)))]
+    (if (check-straight-descending straight1)
+      {:strength 5 :made-hand straight1}
+      (if (check-straight-descending straight2)
+        {:strength 5 :made-hand straight2}
+        (if (check-straight-descending straight3)
+          {:strength 5 :made-hand straight3}
+          (let [wheel (is-wheel seven-card-hand)]
+            (if wheel wheel)))))))
+
+(defn is-flush
+  "Takes in a sorted 7-card hand,
+  returns a map of its strength (6) and the made hand of five cards,
+  or nil if not a flush"
+  [seven-card-hand]
+  (let [spades (filter #(= (:suit %) 1) seven-card-hand)
+        hearts (filter #(= (:suit %) 2) seven-card-hand)
+        diamonds (filter #(= (:suit %) 3) seven-card-hand)
+        clubs (filter #(= (:suit %) 4) seven-card-hand)]
+    (if (>= (count spades) 5)
+      {:strength 6 :made-hand (take 5 spades)}
+      (if (>= (count hearts) 5)
+        {:strength 6 :made-hand (take 5 hearts)}
+        (if (>= (count diamonds) 5)
+          {:strength 6 :made-hand (take 5 diamonds)}
+          (if (>= (count clubs) 5)
+            {:strength 6 :made-hand (take 5 clubs)}))))))
+
+(defn is-full-house
+  "Takes in a sorted 7-card hand,
+  returns a map of its strength (7) and the made hand of five cards,
+  or nil if not a full house"
+  [seven-card-hand]
+  (let [trips (is-trips seven-card-hand)]
+    (if trips
+      (let [pair (is-pair (concat (filter (fn [card] (not= (:rank card) (:rank (first (:made-hand trips))))) seven-card-hand)
+                                '({:rank 1 :suit -1} {:rank 0 :suit -1} {:rank -1 :suit -1})))]
+        (if pair
+          {:strength 7 :made-hand (flatten (list (take 3 (:made-hand trips)) (take 2 (:made-hand pair))))})))))
+
+(defn is-quads
+  "Takes in a sorted 7-card hand,
+  returns a map of its strength (8) and the made hand of five cards,
+  or nil if not four of a kind"
+  [seven-card-hand]
+  (let [card1 (nth seven-card-hand 0)
+        card2 (nth seven-card-hand 1) ;TODO is nth or first/rest more expensive for accessing elements?
+        card3 (nth seven-card-hand 2)
+        card4 (nth seven-card-hand 3)
+        card5 (nth seven-card-hand 4)
+        card6 (nth seven-card-hand 5)
+        card7 (nth seven-card-hand 6)]
+    (if (= (:rank card1) (:rank card2) (:rank card3) (:rank card4))
+      {:strength 8 :made-hand (list card1 card2 card3 card4 card5)}
+      (if (= (:rank card2) (:rank card3) (:rank card4) (:rank card5))
+        {:strength 8 :made-hand (list card2 card3 card4 card5 card1)}
+        (if (= (:rank card3) (:rank card4) (:rank card5) (:rank card6))
+          {:strength 8 :made-hand (list card3 card4 card5 card6 card1)}
+          (if (= (:rank card4) (:rank card5) (:rank card6) (:rank card7))
+            {:strength 8 :made-hand (list card4 card5 card6 card7 card1)}))))))
+
+(defn is-straight-flush
+  "Takes in a sorted 7-card hand,
+  returns a map of its strength (9) and the made hand of five cards,
+  or nil if not a straight flush"
+  [seven-card-hand]
+  (let [null-cards '({:rank -1 :suit -1} {:rank -1 :suit -1})
+        s-f-1 (concat (take 5 seven-card-hand) null-cards)
+        s-f-2 (concat (take 5 (rest seven-card-hand)) null-cards)
+        s-f-3 (concat (take 5 (rest (rest seven-card-hand))) null-cards)]
+    (if (and (is-straight s-f-1) (is-flush s-f-1))
+      {:strength 9 :made-hand (take 5 s-f-1)}
+      (if (and (is-straight s-f-2) (is-flush s-f-2))
+        {:strength 9 :made-hand (take 5 s-f-2)}
+        (if (and (is-straight s-f-3) (is-flush s-f-3))
+          {:strength 9 :made-hand (take 5 s-f-3)}
+          (let [wheel (is-wheel seven-card-hand)]
+            (if wheel
+              (if (is-flush (concat (:made-hand wheel) null-cards))
+                {:strength 9 :made-hand (:made-hand wheel)}))))))))
+
+(defn rank-hand
+  "Input: 7-card hand (two hole cards, five community cards)
+   Output: a map of two items -> integer representing rank of the hand,
+   the five-card \"made hand\" that counts from the original 7"
+  [seven-card-hand]
+  (let [sorted-hand (reverse (sort-by (fn [hand] (:rank hand)) seven-card-hand))]
+    (let [straight-flush (is-straight-flush sorted-hand)]
+      (if straight-flush
+        straight-flush
+        (let [quads (is-quads sorted-hand)]
+          (if quads
+            quads
+            (let [full-house (is-full-house sorted-hand)]
+              (if full-house
+                full-house
+                (let [flush (is-flush sorted-hand)]
+                  (if flush
+                    flush
+                    (let [straight (is-straight sorted-hand)]
+                      (if straight
+                        straight
+                        (let [trips (is-trips sorted-hand)]
+                          (if trips
+                            trips
+                            (let [two-pair (is-two-pair sorted-hand)]
+                              (if two-pair
+                                two-pair
+                                (let [pair (is-pair sorted-hand)]
+                                  (if pair
+                                    pair
+                                    {:strength 1 :made-hand (take 5 sorted-hand)}))))))))))))))))))
