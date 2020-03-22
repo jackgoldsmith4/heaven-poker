@@ -274,3 +274,22 @@
     (testing "Hand with just a high card: passes through all helper methods as false"
       (is (= (:strength ranking2) 1))
       (is (= (:made-hand ranking2) '({:rank 9 :suit 4} {:rank 8 :suit 2} {:rank 7 :suit 1} {:rank 6 :suit 4} {:rank 4 :suit 3}))))))
+
+(deftest compare-hand-ranks-test
+  (let [ranking1 {:strength 5 :made-hand '({:rank 14 :suit 3} {:rank 13 :suit 4} {:rank 12 :suit 1} {:rank 11 :suit 3} {:rank 10 :suit 4})}
+        ranking2 {:strength 1 :made-hand '({:rank 14 :suit 3} {:rank 13 :suit 4} {:rank 12 :suit 1} {:rank 11 :suit 3} {:rank 6 :suit 4})}
+        ranking3 {:strength 2 :made-hand '({:rank 14 :suit 1} {:rank 14 :suit 2} {:rank 13 :suit 3} {:rank 9 :suit 4} {:rank 7 :suit 4})}
+        ranking4 {:strength 2 :made-hand '({:rank 14 :suit 1} {:rank 14 :suit 2} {:rank 12 :suit 3} {:rank 9 :suit 4} {:rank 7 :suit 4})}
+        ranking5 {:strength 1 :made-hand '({:rank 13 :suit 4} {:rank 12 :suit 1} {:rank 11 :suit 3} {:rank 6 :suit 4} {:rank 3 :suit 3})}
+        ranking6 {:strength 2 :made-hand '({:rank 14 :suit 2} {:rank 14 :suit 1} {:rank 10 :suit 1} {:rank 8 :suit 3} {:rank 7 :suit 3})}
+        ranking7 {:strength 2 :made-hand '({:rank 7 :suit 4} {:rank 7 :suit 3} {:rank 14 :suit 1} {:rank 8 :suit 3} {:rank 6 :suit 3})}]
+    (testing "Straight wins over Ace King high"
+      (is (= (compare-hand-ranks (list ranking1 ranking2)) (list ranking1))))
+    (testing "Split: exact same straight returns both rankings"
+      (is (= (compare-hand-ranks (list ranking1 ranking1)) (list ranking1 ranking1))))
+    (testing "Both hands have one pair, but one has a better kicker"
+      (is (= (compare-hand-ranks (list ranking3 ranking4)) (list ranking3))))
+    (testing "Ace high wins over King high"
+      (is (= (compare-hand-ranks (list ranking5 ranking2)) (list ranking2))))
+    (testing "Pair of aces wins over pair of 7s"
+      (is (= (compare-hand-ranks (list ranking6 ranking7)) (list ranking6))))))

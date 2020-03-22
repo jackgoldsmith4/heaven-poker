@@ -177,3 +177,30 @@
                                   (if pair
                                     pair
                                     {:strength 1 :made-hand (take 5 sorted-hand)}))))))))))))))))))
+
+(defn comparator-helper
+  "Helper function for comparing hand ranks: tie-breaking"
+  [winners]
+  (let [first-card (filter (fn [ranking] (= (:rank (first (:made-hand ranking)))
+                                            (apply max (map #(:rank (first (:made-hand %))) winners)))) winners)]
+    (if (not (first (rest first-card)))
+      first-card
+      (let [second-card (filter (fn [ranking] (= (:rank (first (rest (:made-hand ranking))))
+                                                 (apply max (map #(:rank (first (rest (:made-hand %)))) first-card)))) first-card)]
+        (if (not (first (rest second-card)))
+          second-card
+          (let [third-card (filter (fn [ranking] (= (:rank (first (rest (rest (:made-hand ranking)))))
+                                                    (apply max (map #(:rank (first (rest (rest (:made-hand %))))) second-card)))) second-card)]
+            (if (not (first (rest third-card)))
+              third-card
+              (let [fourth-card (filter (fn [ranking] (= (:rank (first (rest (rest (rest (:made-hand ranking))))))
+                                                         (apply max (map #(:rank (first (rest (rest (rest (:made-hand %)))))) third-card)))) third-card)]
+                (if (not (first (rest fourth-card)))
+                  fourth-card
+                  (filter (fn [ranking] (= (:rank (last (:made-hand ranking))) (apply max (map #(:rank (last (:made-hand %))) fourth-card)))) fourth-card))))))))))
+
+(defn compare-hand-ranks
+  "Takes hand ranking maps and returns the one(s) that win the hand"
+  [hand-rankings]
+  (let [winners (filter (fn [ranking] (= (:strength ranking) (apply max (map #(:strength %) hand-rankings)))) hand-rankings)]
+    (if (not (first (rest winners))) winners (comparator-helper winners))))

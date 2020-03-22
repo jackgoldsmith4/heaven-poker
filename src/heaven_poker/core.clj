@@ -26,4 +26,6 @@
            (map (fn [card] (str (card-to-string card) "\n")) community-cards)
            "\n\nHand Ranks:\n"
            (map (fn [rank] (str (nth players (.indexOf hand-ranks rank)) ": "
-                                (hand-ranking-to-string rank) "\n")) hand-ranks)))
+                                (hand-ranking-to-string rank) "\n")) hand-ranks)
+           "\n\nWinner: "
+           (hand-ranking-to-string (first (compare-hand-ranks hand-ranks)))))
