@@ -178,26 +178,22 @@
                                     pair
                                     {:strength 1 :made-hand (take 5 sorted-hand)}))))))))))))))))))
 
+; TODO clean up this function: lots of repetitive code in the filters for each card, but not sure how to change
+; TODO this into a higher-order function because each card comparison depends on results of the previous one
 (defn comparator-helper
-  "Helper function for comparing hand ranks: tie-breaking"
+  "Helper function for comparing hand ranks: tie-breaking based on the rank of the five cards in each made-hand"
   [winners]
   (let [first-card (filter (fn [ranking] (= (:rank (first (:made-hand ranking)))
-                                            (apply max (map #(:rank (first (:made-hand %))) winners)))) winners)]
-    (if (not (first (rest first-card)))
-      first-card
-      (let [second-card (filter (fn [ranking] (= (:rank (first (rest (:made-hand ranking))))
-                                                 (apply max (map #(:rank (first (rest (:made-hand %)))) first-card)))) first-card)]
-        (if (not (first (rest second-card)))
-          second-card
-          (let [third-card (filter (fn [ranking] (= (:rank (first (rest (rest (:made-hand ranking)))))
-                                                    (apply max (map #(:rank (first (rest (rest (:made-hand %))))) second-card)))) second-card)]
-            (if (not (first (rest third-card)))
-              third-card
-              (let [fourth-card (filter (fn [ranking] (= (:rank (first (rest (rest (rest (:made-hand ranking))))))
-                                                         (apply max (map #(:rank (first (rest (rest (rest (:made-hand %)))))) third-card)))) third-card)]
-                (if (not (first (rest fourth-card)))
-                  fourth-card
-                  (filter (fn [ranking] (= (:rank (last (:made-hand ranking))) (apply max (map #(:rank (last (:made-hand %))) fourth-card)))) fourth-card))))))))))
+                                            (apply max (map #(:rank (first (:made-hand %))) winners)))) winners)
+        second-card (filter (fn [ranking] (= (:rank (first (rest (:made-hand ranking))))
+                                             (apply max (map #(:rank (first (rest (:made-hand %)))) first-card)))) first-card)
+        third-card (filter (fn [ranking] (= (:rank (first (rest (rest (:made-hand ranking)))))
+                                            (apply max (map #(:rank (first (rest (rest (:made-hand %))))) second-card)))) second-card)
+        fourth-card (filter (fn [ranking] (= (:rank (first (rest (rest (rest (:made-hand ranking))))))
+                                             (apply max (map #(:rank (first (rest (rest (rest (:made-hand %)))))) third-card)))) third-card)
+        fifth-card (filter (fn [ranking] (= (:rank (last (:made-hand ranking))) (apply max (map #(:rank (last (:made-hand %))) fourth-card)))) fourth-card)
+        winning-players (first (filter #(not (first (rest %))) (list first-card second-card third-card fourth-card fifth-card)))]
+    (if winning-players winning-players fifth-card)))
 
 (defn compare-hand-ranks
   "Takes hand ranking maps and returns the one(s) that win the hand"
