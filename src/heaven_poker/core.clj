@@ -1,7 +1,7 @@
 (ns heaven-poker.core
   (:require [heaven-poker.deck :refer :all])
   (:require [heaven-poker.hand :refer :all])
-  (:require [heaven-poker.to-string :refer :all])) ;TODO can I just refer rankHand and then it relies on other stuff in its own ns?
+  (:require [heaven-poker.to-string :refer :all]))
 
 (defn main
   [& players]
