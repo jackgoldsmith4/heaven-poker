@@ -2,3 +2,6 @@
 
 Currently a bomb-pot engine: clone and then from the terminal run `lein run <player-names>`
 
+For example: `lein run Jack Denny`
+
+
