@@ -5,13 +5,13 @@
 (defn card-number-to-string
   "Converts the rank of a card into its string representation"
   [card]
-  (let [face-card-map {11 "Jack" 12 "Queen" 13 "King" 14 "Ace"}]
+  (let [face-card-map {11 "J" 12 "Q" 13 "K" 14 "A"}]
     (if (> (:rank card) 10) (face-card-map (:rank card)) (:rank card))))
 
 (defn card-suit-to-string
   "Converts the suit of a card into its string representation"
   [card]
-  (let [suit-map {1 "Spades" 2 "Hearts" 3 "Diamonds" 4 "Clubs"}]
+  (let [suit-map {1 "spades" 2 "hearts" 3 "diamonds" 4 "clubs"}]
     (suit-map (:suit card))))
 
 (defn card-to-string
