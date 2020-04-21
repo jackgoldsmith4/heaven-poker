@@ -11,20 +11,17 @@
                    {
                     :name        "Denzel"
                     :stack       500
-                    :hand        nil
                     :status      1
                     :current-bet 0
                     }
                    {
                     :name        "Goldy"
                     :stack       500
-                    :hand        nil
                     :status      1
                     :current-bet 0
                     }
                     ]
          :pot 0
-         :community-cards nil
          :dealer 0
          :action nil
          :bet 0
@@ -34,14 +31,6 @@
          }))
 
 ;;HELPER FUNCTIONS
-(defn print-board
-  "Gets the state of the community-cards and prints them to the console"
-  []
-  (let [
-        board (map (fn [card] (str (card-to-string card) "   ")) (get @poker-game :community-cards))
-        ]
-    (println board))
-  )
 (defn next-player
   "Returns the next player in the circular table"
   [num]
@@ -74,11 +63,12 @@
      )
 
 (defn settle-pot
-  "Calculates the winner of the hand and settles the pot"
-  []
-  (swap! poker-game update-in [:players 0 :stack] + (get @poker-game :pot))
-  (swap! poker-game assoc :pot 0)
-  )
+  "Settles the pot given the winner"
+  [winner-name]
+  (let [player (first (filter (fn [player] (= (:name player) winner-name)) (get @poker-game :players)))]
+    (swap! poker-game update-in [:players player :stack] + (get @poker-game :pot))
+    (swap! poker-game assoc :pot 0)
+  ))
 
 ;;Set up player data type
 (defrecord Player [name hand])
@@ -160,27 +150,24 @@
         flop (vec (take 3 deck))
         turn (vec (take 4 deck))
         river (vec (take 5 deck))
-        deck (nthrest deck 5)
-        hands (partition 2 deck)
+        hands (partition 2 (nthrest deck 5))
         players-with-hands (map ->Player player-names hands)
+
         assoc-full-hand (fn [{:keys [hand] :as player}] (assoc player :full-hand (concat hand river)))
         players-with-full-hands (map assoc-full-hand players-with-hands)
+
         assoc-hand-ranking (fn [{:keys [full-hand] :as player}] (assoc player :hand-ranking (rank-hand full-hand)))
         player-data (map assoc-hand-ranking players-with-full-hands)
+
         starting-hand-strings (map (fn [player] (str (:name player) "'s hand: " (starting-hand-to-string (:hand player)) "\n")) player-data)
         flop-strings (map (fn [card] (str (card-to-string card) "\n")) flop)
         turn-strings (map (fn [card] (str (card-to-string card) "\n")) turn)
         river-strings (map (fn [card] (str (card-to-string card) "\n")) river)
-        ;starting-hand-strings (map (fn [player] (str (:name player) "'s hand: " (starting-hand-to-string (:hand player)) "\n")) player-data)
-        ;community-card-strings (map (fn [card] (str (card-to-string card) "\n")) community-cards)
-        ;hand-ranking-strings (map (fn [player] (str (:name player) ": " (hand-ranking-to-string (:hand-ranking player)) "\n")) player-data)
-        ;determine-winner (fn [player] (let [winner (diff (:hand-ranking player) (first (compare-hand-ranks (map #(:hand-ranking %) player-data))))] (and (nil? (first winner)) (nil? (first (rest winner))))))
-        ;winner-string (:name (first (filter determine-winner player-data)))
-        ]
 
-    ;Goldy - Need to modularize this with (map) - But this assigns hands to the players
-    (swap! poker-game assoc-in [:players 0 :hand] (nth hands 0))
-    (swap! poker-game assoc-in [:players 1 :hand] (nth hands 1))
+        ;hand-ranking-strings (map (fn [player] (str (:name player) ": " (hand-ranking-to-string (:hand-ranking player)) "\n")) player-data)
+        determine-winner (fn [player] (let [winner (diff (:hand-ranking player) (first (compare-hand-ranks (map #(:hand-ranking %) player-data))))] (and (nil? (first winner)) (nil? (first (rest winner))))))
+        winner-name (:name (first (filter determine-winner player-data)))
+        ]
 
     ;Set the number of actives as the number of players sitting at the table
     (swap! poker-game assoc :num-actives (get @poker-game :num-players))
@@ -189,36 +176,26 @@
     (println starting-hand-strings)
     (betting-round)
 
-    ;Add the flop to community cards - Cards are irrelevant, just testing two betting rounds
-    (swap! poker-game assoc :community-cards flop)
-    (print-board)
-
     ;flop betting
+    (println flop-strings)
     (betting-round)
-
-    ;Add the turn card to community cards
-    (swap! poker-game assoc :community-cards turn)
-    (print-board)
 
     ;turn betting
+    (println turn-strings)
     (betting-round)
 
-    ;add the river card to community cards
-    (swap! poker-game assoc :community-cards river)
-    (print-board)
-
     ;river betting
+    (println river-strings)
     (betting-round)
 
     ;split up the pot
-    (settle-pot)
+    (settle-pot winner-name)
 
+    (println winner-name " wins.")
   ))
-
-
 
 
 (defn main
   [& player-names]
-  (run-hand "Denny" "Goldy")
+  (run-hand "Denzel" "Goldy")
   )
