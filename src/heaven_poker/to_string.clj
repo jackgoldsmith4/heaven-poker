@@ -11,13 +11,13 @@
 (defn card-suit-to-string
   "Converts the suit of a card into its string representation"
   [card]
-  (let [suit-map {1 "spades" 2 "hearts" 3 "diamonds" 4 "clubs"}]
+  (let [suit-map {1 "S" 2 "H" 3 "D" 4 "C"}]
     (suit-map (:suit card))))
 
 (defn card-to-string
   "Converts a card (map of rank and suit) into its string representation"
   [card]
-  (str (card-number-to-string card) " of " (card-suit-to-string card)))
+  (str (card-number-to-string card) (card-suit-to-string card)))
 
 (defn starting-hand-to-string
   "Converts a two-card poker hand into its string representation"
