@@ -135,7 +135,7 @@
                 {:rank 8 :suit 1}
                 {:rank 2 :suit 1})
         straight-4 (is-straight hand4)
-        hand5 '({:rank 14 :suit 2}
+        hand5 '({:rank 14 :suit 1}
                 {:rank 7 :suit 3}
                 {:rank 5 :suit 2}
                 {:rank 4 :suit 2}
@@ -156,7 +156,7 @@
       (is (= (map #(:rank %) (:made-hand straight-4)) '(12 11 10 9 8))))
     (testing "Hand with wheel straight on a paired board (edge case)"
       (is (= (:strength straight-5) 5))
-      (is (or (= (map #(:rank %) (:made-hand straight-5)) '(5 4 3 2 1)))))))
+      (is (or (= (map #(:rank %) (:made-hand straight-5)) '(5 4 3 2 14)))))))
 
 (deftest is-flush-test
   (let [hand1 '({:rank 12 :suit 1}
