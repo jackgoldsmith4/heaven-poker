@@ -11,20 +11,20 @@
                    {
                     :name "Denzel"
                     :stack 500
-                                  :status      1
-                                  :current-bet 0
-                                  }
-                                 {
-                                  :name        "Goldy"
-                                  :stack       500
-                                  :status      1
-                                  :current-bet 0
-                                  }
-                                 ]
-                       :num-players 2
-                       :num-actives nil
-                       :num-to-play nil
-                       }))
+                    :status 1
+                    :current-bet 0
+                    }
+                   {
+                    :name "Goldy"
+                    :stack 500
+                    :status 1
+                    :current-bet 0
+                    }
+                   ]
+         :num-players 2
+         :num-actives nil
+         :num-to-play nil
+         }))
 
 ;;HELPER FUNCTIONS
 (defn next-player
@@ -95,23 +95,29 @@
     )
   )
 
-(defn make-pots
-  "At the end of each betting street, moves all the bets into the pot"
-  []
-  (while (pos? (get-min-current-bet))
-    (do
-      (loop [p (next-active-player -1)
-             n (get @poker-game :num-actives)
-             current-pot (dec (count (get @poker-game :pots)))
-             current-min (get-min-current-bet)]
-        (if (= (get-in @poker-game [:players p :status]) current-pot)
-          (do
-            (swap! poker-game :update-in [:players p :current-bet] - current-min)
-            (swap! poker-game :update-in [:pots current-pot :stack] + current-min)
-            (if (pos? (get-in @poker-game [:players p :current-bet]))
-              (swap! poker-game :update-in [:players p :status] + 1)
-              )
-            (recur (next-active-player p) (dec n))))))))
+;(defn make-pots
+;  "At the end of each betting street, moves all the bets into the pot"
+;  []
+;  (while (pos? (get-min-current-bet))
+;    (do
+;      (loop [p (next-active-player -1)
+;             n (get @poker-game :num-actives)
+;             current-pot (dec (count (get @poker-game :pots)))
+;             current-min (get-min-current-bet)]
+;        (if (= (get-in @poker-game [:players p :status]) current-pot)
+;          (do
+;            (swap! poker-game :update-in [:players p :current-bet] - current-min)
+;            (swap! poker-game :update-in [:pots current-pot :stack] + current-min)
+;            (if (pos? (get-in @poker-game [:players p :current-bet]))
+;              (swap! poker-game :update-in [:players p :status] + 1)
+;              )
+;            (recur (next-active-player p) (dec n))
+;            )
+;          )
+;        )
+;      )
+;    )
+;  )
 
 
 ;;Data structure reset
@@ -130,6 +136,7 @@
 
 (defn pot-reset
   "Used at the beginning of each hand to reset the pot data structure"
+  []
   (swap! poker-game assoc :pots [{:stack 0}])
   )
 
@@ -164,7 +171,7 @@
 (defn raise-reset
   "Resets the raise field to 0"
   []
-  (swap! poker-game assoc :bet 0))
+  (swap! poker-game assoc :raise 0))
 
 ;;Note - add reset for num-to-play
 (defn prep-for-new-hand
@@ -188,24 +195,15 @@
 (defn settle-pot
   "Iterate through each pot and distribute the pot stack to eligible winners"
   [winner-name]
-  ;Start at the last pot
-  ;Get the names of all of the players with status = pot.index
-  ;Determine the winner(s) of the pot??? Do we have the method for this yet? Would it be easier to get the index of each player who is in the pot?
-  ;Move chips from the pot to the winner(s) stack
-  ;Go to next pot
   (if (> (get @poker-game :num-actives) 1)
-  (loop [x 0]
-    (if (= (get-in @poker-game [:players x :name]) winner-name)
-      (do
-        (swap! poker-game update-in [:players x :stack] + (get @poker-game :pot))
-        (swap! poker-game assoc :pot 0))
-      (recur (inc x))))
-  (loop [x 0]
-    (if (= (get-in @poker-game [:players x :status]) 0)
-      (do
-        (swap! poker-game update-in [:players x :stack] + (get @poker-game :pot))
-        (swap! poker-game assoc :pot 0))
-      (recur (inc x))))))
+    (loop [x 0]
+      (if (= (get-in @poker-game [:players x :name]) winner-name)
+        (swap! poker-game update-in [:players x :stack] + (get-in @poker-game [:pots 0 :stack]))
+        (recur (inc x))))
+    (loop [x 0]
+      (if (> (get-in @poker-game [:players x :status]) -1)
+        (swap! poker-game update-in [:players x :stack] + (get-in @poker-game [:pots 0 :stack]))
+        (recur (inc x))))))
 
 ;;BETTING FUNCTIONS
 (defn raise
@@ -253,7 +251,7 @@
       "c" (check-call)
       "b" (loop []
             (let [bet-size (Integer/parseInt (read-line)) max-bet (get-max-bet) min-bet (get-min-bet)]
-              (if (& (<= bet-size max-bet) (>= bet-size min-bet))
+              (if (and (<= bet-size max-bet) (>= bet-size min-bet))
                 (raise bet-size)
                 (if (> bet-size max-bet)
                   (do (println "The maximum you can bet is " max-bet ", enter a new bet and press enter") (recur))
@@ -321,7 +319,7 @@
     (println river-strings)
     (betting-round)
     ;split up the pot
-    (println (str "\n" winner-name " takes down the " (get @poker-game :pot) " dollar pot with a "(hand-ranking-to-string(:hand-ranking (first (filter determine-winner player-data))))))
+    (println (str "\n" winner-name " takes down the " (get-in @poker-game [:pots 0 :stack]) " dollar pot with a "(hand-ranking-to-string(:hand-ranking (first (filter determine-winner player-data))))))
     (settle-pot winner-name)))
 
 
