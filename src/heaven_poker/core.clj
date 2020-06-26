@@ -77,47 +77,49 @@
 
 
 (defn get-min-current-bet
-  "Returns the lowest of all the players current bets - needed for creating side pots during all-ins"
+  "Returns the lowest bet in front of a player, or returns nil if all current-bets are 0"
   []
   (let [min (atom 999999999)]
     (loop [x (get @poker-game :action)
            y (get @poker-game :num-actives)]
       (if (> y 0)
-        (if (< (get-in @poker-game [:players x :current-bet]) @min)
+
+        (if (and (< (get-in @poker-game [:players x :current-bet]) @min) (> (get-in @poker-game [:players x :current-bet]) 0))
           (do
             (reset! min (get-in @poker-game [:players x :current-bet]))
             (recur (next-active-player x) (dec y)))
-          (recur (next-active-player x) (dec y))
-          )
-        @min
-        )
-      )
-    )
-  )
+          (recur (next-active-player x) (dec y)))
+        ;;If min is less than 9999999999 we know that a min has been found, otherwise return nil
+        (if (< @min 999999999)
+          @min
+          nil
+          )))))
 
-;(defn make-pots
-;  "At the end of each betting street, moves all the bets into the pot"
-;  []
-;  (while (pos? (get-min-current-bet))
-;    (do
-;      (loop [p (next-active-player -1)
-;             n (get @poker-game :num-actives)
-;             current-pot (dec (count (get @poker-game :pots)))
-;             current-min (get-min-current-bet)]
-;        (if (= (get-in @poker-game [:players p :status]) current-pot)
-;          (do
-;            (swap! poker-game :update-in [:players p :current-bet] - current-min)
-;            (swap! poker-game :update-in [:pots current-pot :stack] + current-min)
-;            (if (pos? (get-in @poker-game [:players p :current-bet]))
-;              (swap! poker-game :update-in [:players p :status] + 1)
-;              )
-;            (recur (next-active-player p) (dec n))
-;            )
-;          )
-;        )
-;      )
-;    )
-;  )
+(defn make-pots
+  "At the end of each betting street, moves all the bets into the pot"
+  []
+  (while (get-min-current-bet)
+    ;;Grabs the index of the current pot, and grabs the lowest bet on the table
+      (let [current-pot (dec (count (get @poker-game :pots)))
+            current-min (get-min-current-bet)]
+        ;;Grabs the player in the first seat and the number of players
+        (loop [p 0
+               n (get @poker-game :num-players)]
+          (let [chips (get-in @poker-game [:players p :current-bet])]
+            (cond
+              (= chips 0)
+              (recur (next-active-player p) (dec n))
+
+              (and (> chips 0) (<= chips current-min))
+              (do
+                (swap! poker-game update-in [:players p :current-bet] - current-min)
+                (swap! poker-game update-in [:pots current-pot :stack] + current-min))
+
+              (> chips current-min)
+              (do
+                (swap! poker-game update-in [:players p :current-bet] - current-min)
+                (swap! poker-game update-in [:pots current-pot :stack] + current-min)
+                (swap! poker-game update-in [:players p :status] + 1))))))))
 
 
 ;;Data structure reset
@@ -276,6 +278,7 @@
           )
         )
     )
+  (make-pots)
   (bet-reset)
   (raise-reset)
   )
