@@ -42,11 +42,6 @@
           (get-in @poker-game [:players (get @poker-game :action) :stack])
           @max)))))
 
-(defn get-min-bet
-  "Returns the min amount a player can bet"
-  []
-  (max (get @poker-game :raise) (get @poker-game :big-blind)))
-
 (defn get-min-current-bet
   "Returns the lowest bet in front of a player, or returns nil if all current-bets are 0"
   []
@@ -92,16 +87,8 @@
 (defn status-reset
   "Used at the beginning of each hand to reset all player statuses to 0"
   []
-  (loop [x 0]
-    (if (< x (get @poker-game :num-players))
-      (do
-        (swap! poker-game assoc-in [:players x :status] 0)
-        (recur (inc x))))))
-
-(defn pot-reset
-  "Used at the beginning of each hand to reset the pot data structure"
-  []
-  (swap! poker-game assoc :pots [0]))
+  (let [status-change (fn [index] (swap! poker-game assoc-in [:players index :status] 0))]
+    (run! status-change (range 0 (get @poker-game :num-players)))))
 
 (defn num-actives-reset
   "Used at the beginning of each hand to reset the count of active players in the hand"
@@ -117,17 +104,8 @@
 (defn move-dealer-chip
   "Moves the dealer chip to the next active player"
   []
-  (let [d (next-active-player (get @poker-game :dealer))] (swap! poker-game assoc :dealer d)))
-
-(defn bet-reset
-  "Resets the bet field to 0"
-  []
-  (swap! poker-game assoc :bet 0))
-
-(defn raise-reset
-  "Resets the raise field to 0"
-  []
-  (swap! poker-game assoc :raise 0))
+  (let [d (next-active-player (get @poker-game :dealer))]
+    (swap! poker-game assoc :dealer d)))
 
 (defn reset-action
   "Resets the action to the player to the left of the dealer"
@@ -152,11 +130,11 @@
   "Resets all statuses to 0, Resets the pot data structure to have a single empty pot, Resets the number of active players in the hand, Moves the dealer chip, resets bet, resets raise"
   []
   (status-reset)
-  (pot-reset)
   (num-actives-reset)
   (move-dealer-chip)
-  (bet-reset)
-  (raise-reset)
+  (swap! poker-game assoc :pots [0])
+  (swap! poker-game assoc :bet 0)
+  (swap! poker-game assoc :raise 0)
   (take-blinds-and-set-action))
 
 (defn update-action
@@ -220,7 +198,7 @@
           (update-action))
         bet
         (fn []
-          (let [bet-size (Integer/parseInt (read-line)) max-bet (get-max-bet) min-bet (get-min-bet)]
+          (let [bet-size (Integer/parseInt (read-line)) max-bet (get-max-bet) min-bet (max (get @poker-game :raise) (get @poker-game :big-blind))]
             (if (or (and (<= bet-size max-bet) (>= bet-size min-bet)) (= bet-size (get-in @poker-game [:players (get @poker-game :action) :stack])))
               (raise bet-size)
               (if (> bet-size max-bet)
@@ -248,8 +226,8 @@
             "Break Loop - Next Street"
             (do (prompt-bet) (recur))))))
   (make-pots)
-  (bet-reset)
-  (raise-reset))
+  (swap! poker-game assoc :bet 0)
+  (swap! poker-game assoc :raise 0))
 
 (defn pre-flop-betting-round
   "Runs a street of betting"
@@ -262,8 +240,8 @@
             "Break Loop - Next Street"
             (do (prompt-bet) (recur))))))
   (make-pots)
-  (bet-reset)
-  (raise-reset))
+  (swap! poker-game assoc :bet 0)
+  (swap! poker-game assoc :raise 0))
 
 (defn run-hand
   "Sets up a new hand and runs it"
