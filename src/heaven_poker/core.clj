@@ -116,13 +116,13 @@
   "When prepping for a new hand, takes the small and big blinds"
   []
   (let [dealer (get @poker-game :dealer)
-        small-blind (next-active-player dealer)
-        big-blind (next-active-player small-blind)
-        action (next-active-player big-blind)]
-    (swap! poker-game update-in [:players small-blind :stack] - (/ (get @poker-game :big-blind) 2))
-    (swap! poker-game update-in [:players small-blind :current-bet] + (/ (get @poker-game :big-blind) 2))
-    (swap! poker-game update-in [:players big-blind :stack] - (get @poker-game :big-blind))
-    (swap! poker-game update-in [:players big-blind :current-bet] + (get @poker-game :big-blind))
+        small-blind-seat (next-active-player dealer)
+        big-blind-seat (next-active-player small-blind-seat)
+        action (next-active-player big-blind-seat)]
+    (swap! poker-game update-in [:players small-blind-seat :stack] - (get @poker-game :small-blind))
+    (swap! poker-game update-in [:players small-blind-seat :current-bet] + (get @poker-game :small-blind))
+    (swap! poker-game update-in [:players big-blind-seat :stack] - (get @poker-game :big-blind))
+    (swap! poker-game update-in [:players big-blind-seat :current-bet] + (get @poker-game :big-blind))
     (swap! poker-game assoc :action action)))
 
 ;;Note - add reset for num-to-play
@@ -166,12 +166,6 @@
             (recur (inc x)))))
        (recur (drop-last pots))))))
 
-;;BETTING FUNCTIONS
-(defn set-big-blind
-  "Input: Value of the big blind, sets the field in the game atom" ;TODO take in little blind separately in a similar way?
-  [big-blind]
-  (swap! poker-game assoc :big-blind big-blind))
-
 (defn prompt-bet
   "Prompts the user to bet and handles their response"
   []
@@ -213,6 +207,8 @@
       "c" (check-call)
       "b" (bet)
       "f" (fold))))
+
+; TODO -- make betting-round and preflop version into one function
 
 ;;MANAGING GAME FLOW
 (defn betting-round
@@ -300,13 +296,20 @@
 
 (defn main
   [& player-names]
+  (println "\n\nWelcome to Goldy's Game!\n")
+
   (swap! poker-game assoc :dealer 0)
   (swap! poker-game assoc :num-players (count player-names))
   (swap! poker-game assoc :players [])
-  (println "\n\nWelcome to Goldy's Game!\n")
   (add-players player-names)
-  (println "Enter the value for the big blind:")
-  (set-big-blind (Integer/parseInt (read-line)))
+
+  (let [set-big-blind (fn [bb] (swap! poker-game assoc :big-blind bb))
+        set-small-blind (fn [sb] (swap! poker-game assoc :small-blind sb))]
+    (println "Enter the value for the small blind:")
+    (set-small-blind (Integer/parseInt (read-line)))
+    (println "Enter the value for the big blind:")
+    (set-big-blind (Integer/parseInt (read-line))))
+
   (loop []
     (prep-for-new-hand)
     (if (and (> (get-in @poker-game [:players 0 :stack]) 0) (> (get-in @poker-game [:players 1 :stack]) 0))
