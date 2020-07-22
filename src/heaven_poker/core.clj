@@ -262,7 +262,7 @@
         hand-ranking-strings (map (fn [player] (str (:name player) ": " (hand-ranking-to-string (:hand-ranking player)) "\n")) player-data)
         determine-winner (fn [player] (let [winner (diff (:hand-ranking player) (first (compare-hand-ranks (map #(:hand-ranking %) player-data))))] (and (nil? (first winner)) (nil? (first (rest winner))))))
         winner-name (:name (first (filter determine-winner player-data)))]
-
+    
     ;pre-flop
     (println starting-hand-strings)
     (pre-flop-betting-round)

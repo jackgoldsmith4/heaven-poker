@@ -62,6 +62,20 @@
                           (if (= (:rank card5) (:rank card6) (:rank card7)) (list card5 card6 card7 card1 card2))))))]
     (if made-hand {:strength 4 :made-hand made-hand})))
 
+(defn remove-pairs
+  "Helper function to (is-straight: removes pairs from the initial hand for easier descending-checking"
+  [seven-card-hand]
+  (let [two-pair (is-two-pair seven-card-hand)]
+    (if two-pair
+      (let [firstToRemove (first (:made-hand two-pair))
+            secondToRemove (first (rest (rest (:made-hand two-pair))))]
+        (filter #(and (not= % firstToRemove) (not= % secondToRemove)) seven-card-hand))
+      (let [one-pair (is-pair seven-card-hand)]
+        (if one-pair
+          (let [toRemove (first (:made-hand one-pair))]
+            (filter #(not= % toRemove) seven-card-hand))
+          seven-card-hand)))))
+
 (defn check-straight-descending
   "Helper function to (is-straight: takes in a sequence of five cards, returns them if they're descending"
   [five-card-hand]
@@ -71,24 +85,25 @@
 
 (defn is-wheel
   "Helper function to (is-straight: checks for the \"wheel\" straight (ace through five)"
-  [seven-card-hand]
-  (if (= 14 (:rank (first seven-card-hand)))
-    (if (= 5 (:rank (first (rest (rest (rest seven-card-hand))))))
-      (if (= 4 (:rank (first (rest (rest (rest (rest seven-card-hand)))))))
-        (if (= 3 (:rank (first (rest (rest (rest (rest (rest seven-card-hand))))))))
-          (if (= 2 (:rank (last seven-card-hand)))
-            {:strength 5 :made-hand (flatten (list (reverse (take 4 (reverse seven-card-hand))) (first seven-card-hand)))}))))))
+  [cards]
+  (if (= 14 (:rank (first cards)))
+    (if (= 5 (:rank (first (rest (rest (rest (reverse cards)))))))
+      (if (= 4 (:rank (first (rest (rest (reverse cards))))))
+        (if (= 3 (:rank (first (rest (reverse cards)))))
+          (if (= 2 (:rank (last cards)))
+            {:strength 5 :made-hand (flatten (list (reverse (take 4 (reverse cards))) (first cards)))}))))))
 
 (defn is-straight
   "Takes in a sorted 7-card hand,
   returns a map of its strength (5) and the made hand of five cards,
   or nil if not a straight"
   [seven-card-hand]
-  (let [possible-straights [(take 5 seven-card-hand) (take 5 (rest seven-card-hand)) (take 5 (rest (rest seven-card-hand)))]
+  (let [no-pairs (remove-pairs seven-card-hand)
+        possible-straights [(take 5 no-pairs) (take 5 (rest no-pairs)) (take 5 (rest (rest no-pairs)))]
         made-straight (first (filter #(check-straight-descending %) possible-straights))]
     (if made-straight
       {:strength 5 :made-hand made-straight}
-      (let [wheel (is-wheel seven-card-hand)]
+      (let [wheel (is-wheel no-pairs)]
         (if wheel wheel)))))
 
 (defn is-flush
