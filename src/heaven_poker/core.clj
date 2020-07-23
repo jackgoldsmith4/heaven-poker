@@ -208,29 +208,13 @@
       "b" (bet)
       "f" (fold))))
 
-; TODO -- make betting-round and preflop version into one function
-
 ;;MANAGING GAME FLOW
 (defn betting-round
   "Runs a street of betting"
-  []
+  [is-preflop]
   (if (> (get @poker-game :num-actives) 1)
     (do (swap! poker-game assoc :num-to-play (get @poker-game :num-actives))
-        (swap! poker-game assoc :bet 0)
-        (loop []
-          (if (or (= (get @poker-game :num-actives) 1) (= (get @poker-game :num-to-play) 0))
-            "Break Loop - Next Street"
-            (do (prompt-bet) (recur))))))
-  (make-pots)
-  (swap! poker-game assoc :bet 0)
-  (swap! poker-game assoc :raise 0))
-
-(defn pre-flop-betting-round
-  "Runs a street of betting"
-  []
-  (if (> (get @poker-game :num-actives) 1)
-    (do (swap! poker-game assoc :num-to-play (get @poker-game :num-actives))
-        (swap! poker-game assoc :bet (get @poker-game :big-blind))
+        (swap! poker-game assoc :bet (if is-preflop (get @poker-game :big-blind) 0))
         (loop []
           (if (or (= (get @poker-game :num-actives) 1) (= (get @poker-game :num-to-play) 0))
             "Break Loop - Next Street"
@@ -265,19 +249,19 @@
     
     ;pre-flop
     (println starting-hand-strings)
-    (pre-flop-betting-round)
+    (betting-round true)
     ;flop
     (reset-action)
     (println flop-strings)
-    (betting-round)
+    (betting-round false)
     ;turn
     (reset-action)
     (println turn-strings)
-    (betting-round)
+    (betting-round false)
     ;river
     (reset-action)
     (println river-strings)
-    (betting-round)
+    (betting-round false)
     ;split up the pot
     (println (str "\n" winner-name " takes down the " (get-in @poker-game [:pots 0]) " dollar pot with a "(hand-ranking-to-string(:hand-ranking (first (filter determine-winner player-data))))))
     (settle-pot winner-name)))
