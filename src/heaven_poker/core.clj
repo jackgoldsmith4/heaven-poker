@@ -208,21 +208,6 @@
       "b" (bet)
       "f" (fold))))
 
-;;MANAGING GAME FLOW
-(defn betting-round
-  "Runs a street of betting"
-  [is-preflop]
-  (if (> (get @poker-game :num-actives) 1)
-    (do (swap! poker-game assoc :num-to-play (get @poker-game :num-actives))
-        (swap! poker-game assoc :bet (if is-preflop (get @poker-game :big-blind) 0))
-        (loop []
-          (if (or (= (get @poker-game :num-actives) 1) (= (get @poker-game :num-to-play) 0))
-            "Break Loop - Next Street"
-            (do (prompt-bet) (recur))))))
-  (make-pots)
-  (swap! poker-game assoc :bet 0)
-  (swap! poker-game assoc :raise 0))
-
 (defn run-hand
   "Sets up a new hand and runs it"
   [& player-names]
@@ -231,12 +216,24 @@
         turn (vec (take 4 deck))
         river (vec (take 5 deck))
         hands (partition 2 (nthrest deck 5))
-        players-with-hands (map ->Player player-names hands)
+        active-players-with-hands (map ->Player player-names hands)
         assoc-full-hand (fn [{:keys [hand] :as player}] (assoc player :full-hand (concat hand river)))
-        players-with-full-hands (map assoc-full-hand players-with-hands)
+        players-with-full-hands (map assoc-full-hand active-players-with-hands)
 
         assoc-hand-ranking (fn [{:keys [full-hand] :as player}] (assoc player :hand-ranking (rank-hand full-hand)))
         player-data (map assoc-hand-ranking players-with-full-hands)
+
+        betting-round
+        (fn [is-preflop]
+          (if (> (get @poker-game :num-actives) 1)
+            (do (swap! poker-game assoc :num-to-play (get @poker-game :num-actives))
+                (swap! poker-game assoc :bet (if is-preflop (get @poker-game :big-blind) 0))
+                (loop []
+                  (if (and (not= (get @poker-game :num-actives) 1) (not= (get @poker-game :num-to-play) 0))
+                    (do (prompt-bet) (recur))))))
+          (make-pots)
+          (swap! poker-game assoc :bet 0)
+          (swap! poker-game assoc :raise 0))
 
         starting-hand-strings (map (fn [player] (str (:name player) "'s hand: " (starting-hand-to-string (:hand player)) "\n")) player-data)
         flop-strings (map (fn [card] (str (card-to-string card) "\n")) flop)
