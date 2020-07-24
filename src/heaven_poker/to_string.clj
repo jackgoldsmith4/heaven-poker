@@ -19,6 +19,11 @@
   [card]
   (str (card-number-to-string card) (card-suit-to-string card)))
 
+(defn cards-to-string
+  "Wrapper function to map over multiple cards and call card-to-string"
+  [cards]
+  (map (fn [card] (str (card-to-string card) "\n")) cards))
+
 (defn starting-hand-to-string
   "Converts a two-card poker hand into its string representation"
   [hand]
