@@ -1,8 +1,15 @@
 (ns heaven-poker.core
   (:require [heaven-poker.deck :refer [deck]]
             [heaven-poker.hand :refer :all]
-            [heaven-poker.to-string :refer :all])
-  (:use clojure.data))
+            [heaven-poker.to-string :refer :all]
+            [compojure.route :as route]
+            [heaven-poker.view :as view])
+  (:use [clojure.data] [compojure.core]))
+
+(defroutes home
+           (GET "/" [] (view/home))
+           (route/resources "/")
+           )
 
 (defrecord Player [name hand])
 
