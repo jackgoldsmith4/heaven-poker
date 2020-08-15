@@ -190,7 +190,6 @@
                   (fn [winner-name]
                     (let [winner-index (.indexOf (map #(:name %) (get @poker-game :players)) winner-name)]
                       (println (str "\n" winner-name " wins " (/ pot-size (count winners)) " dollars with a "(hand-ranking-to-string (:hand-ranking (first winners)))))
-                      (println winner-index)
                       (swap! poker-game update-in [:players winner-index :stack] + (/ pot-size (count winners)))))]
               (run! update-winner winner-names)))]
       (run! settle-pot-x (range 0 (count (get-in @poker-hand [:pots :values])))))
