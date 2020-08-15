@@ -117,7 +117,7 @@
         (fn [bet-amount]
           (let [clear-current-bet
                 (fn [index]
-                  (if (> 0 (get-in @poker-game [:players index :status]))
+                  (if (>= 0 (get-in @poker-game [:players index :status]))
                     (do
                       (swap! poker-game update-in [:players index :current-bet] - bet-amount)
                       (swap! poker-hand update-in [:pots :values (get-current-pot)] + bet-amount))))]
@@ -125,10 +125,11 @@
         betting-round
         (fn [is-preflop]
           (if (> (num-actives) 1)
-            (do (swap! poker-hand assoc :num-to-act (num-actives))
-                (swap! poker-hand assoc :bet (if is-preflop (get @poker-game :big-blind) 0))
-                (while (if (and (not= (num-actives) 1)
-                                (not= (get @poker-hand :num-to-act) 0)) (prompt-bet)))))
+            (do
+              (swap! poker-hand assoc :num-to-act (num-actives))
+              (swap! poker-hand assoc :bet (if is-preflop (get @poker-game :big-blind) 0))
+              (while (if (and (not= (num-actives) 1)
+                              (not= (get @poker-hand :num-to-act) 0)) (prompt-bet)))))
           (make-pot (get-in @poker-game [:players (next-player (get @poker-hand :action)) :current-bet]))
           (swap! poker-hand assoc :bet 0)
           (swap! poker-hand assoc :raise 0)
@@ -174,13 +175,13 @@
                     (betting-round false)))))))))
 
     ; after river, add remaining active players to the top-level players-in list
-    (swap! poker-hand update-in [:pots :players-in (get-current-pot)] conj (filter #(= 1 (:status %)) (get @poker-game :players)))
+    (swap! poker-hand update-in [:pots :players-in (get-current-pot)] conj (filter #(>= (:status %) (get-current-pot)) (get @poker-game :players)))
 
     ; settle the pot(s)
     (let [settle-pot-x
           (fn [index]
             (let [pot-size (get-in @poker-hand [:pots :values index])
-                  players-in (nth (get-in @poker-hand [:pots :players-in index]) 0) ; TODO fix type/structure of players-in to avoid needing to remove outer list here (also maybe buggy)
+                  players-in (nth (get-in @poker-hand [:pots :players-in index]) 0)
                   assoc-full-hand (fn [{:keys [hand] :as player}] (assoc player :full-hand (concat hand community-cards)))
                   assoc-hand-ranking (fn [{:keys [full-hand] :as player}] (assoc player :hand-ranking (rank-hand full-hand)))
                   players-in-ranked (map assoc-hand-ranking (map assoc-full-hand players-in))
