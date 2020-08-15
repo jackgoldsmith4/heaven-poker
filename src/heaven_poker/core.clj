@@ -170,7 +170,7 @@
 
     ; after river, add remaining active players to the top-level players-in list
     (let [current-pot (- (count (:values (get @poker-hand :pots))) 1)]
-      (swap! poker-hand update-in [:pots :players-in current-pot] conj (get @poker-game :players)))
+      (swap! poker-hand update-in [:pots :players-in current-pot] conj (filter #(= 1 (:status %)) (get @poker-game :players))))
 
     ; settle the pot(s)
     (let [settle-pot-x
