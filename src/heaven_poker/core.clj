@@ -137,12 +137,10 @@
               (run! clear-current-bet-x (range 0 (count (get @poker-game :players))))))
           betting-round
           (fn [is-preflop]
-            (if (> (num-actives) 1)
-              (do
-                (swap! poker-hand assoc :num-to-act (num-actives))
-                (swap! poker-hand assoc :bet (if is-preflop (get @poker-game :big-blind) 0))
-                (while (if (and (> (num-actives) 1)
-                                (not= (get @poker-hand :num-to-act) 0)) (prompt-bet)))))
+            (do
+              (swap! poker-hand assoc :num-to-act (num-actives))
+              (swap! poker-hand assoc :bet (if is-preflop (get @poker-game :big-blind) 0))
+              (while (if (not= (get @poker-hand :num-to-act) 0) (prompt-bet))))
             (run! make-pot-x (range 0 (inc (get-current-pot))))
             (swap! poker-hand assoc :bet 0)
             (swap! poker-hand assoc :raise 0)
