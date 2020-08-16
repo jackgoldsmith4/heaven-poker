@@ -70,7 +70,6 @@
                   (recur (circular-inc x))))))
           prompt-bet
           (fn []
-            (println (get @poker-game :players))
             (if (>= (get-in @poker-game [:players (get @poker-hand :action) :status]) (get-current-pot))
               (do
                 (println (str (get-in @poker-game [:players (get @poker-hand :action) :name])"'s Turn:\nStack:" (get-in @poker-game [:players (get @poker-hand :action) :stack])"\n(c = check/call, b = bet/raise, f = fold"))
@@ -101,17 +100,17 @@
                         (if (= 0 (get-in @poker-game [:players (get @poker-hand :action) :stack]))
                           (do
                             ; increase the status level of all other active players who are not all-in
-                            (let [actives (filter #(= (get-current-pot) (:status %)) (get @poker-game :players))]
-                              (run! (fn [player] (swap! poker-game update-in [:players (.indexOf player (get @poker-game :players)) :status] inc)) actives)
+                            (let [filter-actives (fn [players] (filter #(= (:status %) (get-current-pot)) players))
+                                  inc-status (fn [player] (swap! poker-game update-in [:players (.indexOf (map #(:name %) (get @poker-game :players)) (:name player)) :status] + 1))]
+                              (run! inc-status (filter-actives (get @poker-game :players)))
                               ; set actor (who is all-in) status back to current pot
                               (swap! poker-game assoc-in [:players (get @poker-hand :action) :status] (get-current-pot))
                               ; add active players to the current pot's "players-in" list
-                              (swap! poker-hand update-in [:pots :players-in (get-current-pot)] conj actives)
+                              (swap! poker-hand assoc-in [:pots :players-in (get-current-pot)] (filter-actives (get @poker-game :players)))
                               ; create next pot layer for a side pot
-                              (swap! poker-hand update (:values :pots) conj 0)
-                              (swap! poker-hand update (:players-in :pots) conj [])
+                              (swap! poker-hand assoc-in [:pots :values (inc (get-current-pot))] 0)
                               ; add another layer to each player's "current-bet" field
-                              (run! (fn [index] (swap! poker-game update-in [:players index :current-bet] conj 0)) (get @poker-game :players)))))
+                              (run! (fn [index] (swap! poker-game assoc-in [:players index :current-bet (get-current-pot)] 0)) (range 0 (count (get @poker-game :players)))))))
                         (update-action))
                       bet
                       (fn []
