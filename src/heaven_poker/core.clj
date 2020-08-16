@@ -104,7 +104,7 @@
                                   inc-status (fn [player] (swap! poker-game update-in [:players (.indexOf (map #(:name %) (get @poker-game :players)) (:name player)) :status] + 1))]
                               (run! inc-status (filter-actives (get @poker-game :players)))
                               ; set actor (who is all-in) status back to current pot
-                              (swap! poker-game assoc-in [:players (get @poker-hand :action) :status] (get-current-pot))
+                              (swap! poker-game update-in [:players (get @poker-hand :action) :status] - 1)
                               ; create next pot layer for a side pot
                               (swap! poker-hand assoc-in [:pots (inc (get-current-pot))] 0)
                               ; add another layer to each player's "current-bet" field
@@ -121,7 +121,7 @@
                       fold
                       (fn []
                         (swap! poker-hand update-in [:pots (get-current-pot)] + (get-in @poker-game [:players (get @poker-hand :action) :current-bet (get-current-pot)]))
-                        (swap! poker-game assoc-in [:players (get @poker-hand :action) :status] -1)
+                        (swap! poker-game update-in [:players (get @poker-hand :action) :status] - 1)
                         (update-action))]
                   (case input
                     "c" (check-call)
