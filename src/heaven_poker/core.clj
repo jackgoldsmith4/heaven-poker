@@ -104,7 +104,7 @@
                             (swap! poker-game assoc-in [:players (get @poker-hand :action) :status] (get-current-pot))
                             ; add actor's bet to the pot
                             (swap! poker-hand update-in [:pots :values (get-current-pot)] + (get-in @poker-game [:players (get @poker-hand :action) :current-bet]))
-                            ; add actor to the current pot's "players-in" list
+                            ; add active players to the current pot's "players-in" list
                             (swap! poker-hand update-in [:pots :players-in (get-current-pot)] conj (filter #(>= (:status %) (get-current-pot)) (get @poker-game :players)))
                             ; create next pot layer for a side pot
                             (swap! poker-hand update (:values :pots) conj 0)
