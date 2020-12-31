@@ -52,4 +52,5 @@
                   (if (= 8 rank)
                     (str "Four of a Kind, " high-card-str "s")
                     (if (= 9 rank)
-                      (str "Straight Flush, " high-card-str " High"))))))))))))
+                      (str "Straight Flush, " high-card-str " High")
+                      nil)))))))))))
