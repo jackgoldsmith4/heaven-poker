@@ -12,7 +12,7 @@
 ;     - name
 ;     - stack
 ;     - status (-1 = folded, >=0 = in a pot)
-;     - current-bet = layered list of current bets that corresponds to pot data structure
+;     - current-bet = amount in front of players that hasn't been entered in the pot yet
 ;     - hand
 ;     - full-hand
 ;     - hand-ranking
@@ -40,7 +40,7 @@
         hands (partition 2 (nthrest deck 5))
         add-hand-state
         (fn [index]
-          (swap! poker-game assoc-in [:players index :current-bet] [0])
+          (swap! poker-game assoc-in [:players index :current-bet] 0)
           (swap! poker-game assoc-in [:players index :status] 0)
           (swap! poker-game assoc-in [:players index :hand] (nth hands index)))]
     (run! add-hand-state (range 0 (count (get @poker-game :players))))
@@ -68,20 +68,20 @@
                   (let [input (read-line)
                         check-call
                         (fn []
-                          (let [call-amount (- (get @poker-hand :bet) (get-in @poker-game [:players (get @poker-hand :action) :current-bet (get-current-pot)]))]
+                          (let [call-amount (- (get @poker-hand :bet) (get-in @poker-game [:players (get @poker-hand :action) :current-bet]))]
                             (if (> (get-in @poker-game [:players (get @poker-hand :action) :stack]) call-amount)
                               (do
                                 (swap! poker-game update-in [:players (get @poker-hand :action) :stack] - call-amount)
-                                (swap! poker-game update-in [:players (get @poker-hand :action) :current-bet (get-current-pot)] + call-amount))
+                                (swap! poker-game update-in [:players (get @poker-hand :action) :current-bet] + call-amount))
                               (do ; acting player is all-in
-                                (swap! poker-game update-in [:players (get @poker-hand :action) :current-bet (get-current-pot)] + (get-in @poker-game [:players (get @poker-hand :action) :stack]))
+                                (swap! poker-game update-in [:players (get @poker-hand :action) :current-bet] + (get-in @poker-game [:players (get @poker-hand :action) :stack]))
                                 (swap! poker-game assoc [:players (get @poker-hand :action) :stack] 0)))))
                         raise
                         (fn [bet-size]
                           (swap! poker-hand assoc :raise (- bet-size (get @poker-hand :bet)))
                           (swap! poker-hand assoc :bet bet-size)
                           (swap! poker-game update-in [:players (get @poker-hand :action) :stack] - (- bet-size (get-in @poker-game [:players (get @poker-hand :action) :current-bet (get-current-pot)])))
-                          (swap! poker-game assoc-in [:players (get @poker-hand :action) :current-bet (get-current-pot)] bet-size)
+                          (swap! poker-game assoc-in [:players (get @poker-hand :action) :current-bet] bet-size)
                           (if (> (get @poker-hand :raise) 0) (swap! poker-hand assoc :num-to-act (count (get @poker-game :players))) nil)
                           ; handle if actor is now all-in
                           (if (= 0 (get-in @poker-game [:players (get @poker-hand :action) :stack]))
@@ -90,11 +90,8 @@
                                   inc-status (fn [player] (swap! poker-game update-in [:players (.indexOf (map #(:name %) (get @poker-game :players)) (:name player)) :status] + 1))]
                               (run! inc-status (filter-actives (get @poker-game :players)))
                               ; set actor (who is all-in) status back to current pot
-                              (swap! poker-game update-in [:players (get @poker-hand :action) :status] - 0.5)
-                              ; add another layer to each player's "current-bet" field
-                              ;(run! (fn [index] (swap! poker-game assoc-in [:players index :current-bet (get-current-pot)] 0)) (range 0 (count (get @poker-game :players))))
-                              )
-                              nil))
+                              (swap! poker-game update-in [:players (get @poker-hand :action) :status] - 0.5))
+                            nil))
                         bet
                         (fn []
                           (let [bet-size (Integer/parseInt (read-line))
@@ -115,12 +112,7 @@
                 nil)
               (update-action)))
           make-pot-x
-          (fn [pot-index]
-            (let [num-all-in (filter #(= (:status %) (+ 0.5 pot-index)) (get @poker-game :players))
-                  take-current-bet-x (fn [player] (swap! poker-hand update-in [:pots pot-index] + (nth (:current-bet player) (get-current-pot))))
-                  clear-current-bet-x (fn [player-index] (swap! poker-game assoc-in [:players player-index :current-bet pot-index] 0))]
-              (run! take-current-bet-x (get @poker-game :players))
-              (run! clear-current-bet-x (range 0 (count (get @poker-game :players))))))
+          (fn [pot-index] (inc pot-index)) ; TODO
           betting-round
           (fn [is-preflop]
             (swap! poker-hand assoc :num-to-act (count (get @poker-game :players)))
@@ -138,9 +130,9 @@
       (let [small-blind-seat (next-player (get @poker-game :dealer))
             big-blind-seat (next-player small-blind-seat)]
         (swap! poker-game update-in [:players small-blind-seat :stack] - (get @poker-game :small-blind))
-        (swap! poker-game update-in [:players small-blind-seat :current-bet (get-current-pot)] + (get @poker-game :small-blind))
+        (swap! poker-game update-in [:players small-blind-seat :current-bet] + (get @poker-game :small-blind))
         (swap! poker-game update-in [:players big-blind-seat :stack] - (get @poker-game :big-blind))
-        (swap! poker-game update-in [:players big-blind-seat :current-bet (get-current-pot)] + (get @poker-game :big-blind))
+        (swap! poker-game update-in [:players big-blind-seat :current-bet] + (get @poker-game :big-blind))
         (swap! poker-hand assoc :action (next-player big-blind-seat)))
 
       (println (get @poker-game :players))
@@ -167,7 +159,7 @@
       ; settle the pot(s)
       (let [return-uncalled-bet
             (fn [index]
-              (let [uncalled-bet (get-in @poker-game [:players index :current-bet (get-current-pot)])]
+              (let [uncalled-bet (get-in @poker-game [:players index :current-bet])]
                 (swap! poker-game update-in [:players index :stack] + uncalled-bet)
                 (if (> 0 uncalled-bet) (println (concat "Uncalled bet of " uncalled-bet " returned to " (get-in @poker-game [:players index :name]))) nil)
                 (swap! poker-game assoc-in [:players index :current-bet] 0)))
