@@ -69,14 +69,18 @@
                   (let [input (read-line)
                         check-call
                         (fn []
-                          (let [call-amount (- (get @poker-hand :bet) (get-in @poker-game [:players (get @poker-hand :action) :current-bet]))]
-                            (if (> (get-in @poker-game [:players (get @poker-hand :action) :stack]) call-amount)
+                          (let [max-call-amount (+ (get-in @poker-game [:players (get @poker-hand :action) :stack]) (get-in @poker-game [:players (get @poker-hand :action) :current-bet]))
+                                call-amount 
+                                (if (< (get @poker-hand :bet) max-call-amount)
+                                  (- (get @poker-hand :bet) (get-in @poker-game [:players (get @poker-hand :action) :current-bet]))
+                                  max-call-amount)]
+                            (if (> max-call-amount call-amount)
                               (do
                                 (swap! poker-game update-in [:players (get @poker-hand :action) :stack] - call-amount)
                                 (swap! poker-game update-in [:players (get @poker-hand :action) :current-bet] + call-amount))
                               (do ; acting player is all-in
                                 (swap! poker-game update-in [:players (get @poker-hand :action) :current-bet] + (get-in @poker-game [:players (get @poker-hand :action) :stack]))
-                                (swap! poker-game assoc [:players (get @poker-hand :action) :stack] 0)))))
+                                (swap! poker-game assoc-in [:players (get @poker-hand :action) :stack] 0)))))
                         raise
                         (fn [bet-size]
                           (swap! poker-hand assoc :raise (- bet-size (get @poker-hand :bet)))
@@ -87,7 +91,7 @@
                         bet
                         (fn []
                           (let [bet-size (Integer/parseInt (read-line))
-                                max-bet (get-in @poker-game [:players (get @poker-hand :action) :stack])
+                                max-bet (+ (get-in @poker-game [:players (get @poker-hand :action) :stack]) (get-in @poker-game [:players (get @poker-hand :action) :current-bet]))
                                 min-bet (max (get @poker-hand :raise) (get @poker-game :big-blind))]
                             (if (and (<= bet-size max-bet) (>= bet-size min-bet))
                               (raise bet-size)
